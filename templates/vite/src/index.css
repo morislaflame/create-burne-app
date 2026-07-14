@@ -1,0 +1,27 @@
+@import "tailwindcss";
+
+/* Paths relative to this file (src/index.css) */
+@source "./**/*.{tsx,ts}";
+
+@import "burne-ui/styles.css";
+
+/*
+ * Optional: paste CSS from the Burne UI site theme builder (Copy CSS)
+ * into src/burne-theme.css and uncomment:
+ */
+/* @import "./burne-theme.css"; */
+
+html,
+body,
+#root {
+  min-height: 100dvh;
+  font-family: var(--font-family-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  margin: 0;
+  background: var(--color-background);
+  color: var(--color-foreground);
+}

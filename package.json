@@ -1,0 +1,33 @@
+{
+  "name": "create-burne-app",
+  "version": "1.0.0",
+  "description": "Scaffold a Next.js or Vite app with Burne UI",
+  "type": "module",
+  "license": "MIT",
+  "bin": {
+    "create-burne-app": "./bin/create-burne-app.js"
+  },
+  "files": [
+    "bin",
+    "src",
+    "templates"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "keywords": [
+    "burne-ui",
+    "create-burne-app",
+    "react",
+    "nextjs",
+    "vite",
+    "scaffold"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/YOUR_ORG/create-burne-app.git"
+  },
+  "scripts": {
+    "start": "node ./bin/create-burne-app.js"
+  }
+}
