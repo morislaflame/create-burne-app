@@ -10,7 +10,7 @@
     "lint": "tsc --noEmit"
   },
   "dependencies": {
-    "burne-ui": "^1.4.0",
+    "burne-ui": "^1.5.5",
     "next": "^15.0.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",

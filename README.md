@@ -1,65 +1,55 @@
 # create-burne-app
 
-Scaffold a **Next.js** or **Vite** app with [Burne UI](https://www.npmjs.com/package/burne-ui): styles, `BurneUIProvider`, Tailwind CSS v4, demo page.
+Scaffold a **Next.js** or **Vite** app with [Burne UI](https://www.npmjs.com/package/burne-ui).
 
-## Usage (npm / pnpm / bun / yarn)
-
-```bash
-# npm
-npm create burne-app@latest my-app
-npx create-burne-app@latest my-app
-
-# pnpm
-pnpm create burne-app my-app
-pnpm dlx create-burne-app my-app
-
-# bun
-bunx create-burne-app my-app
-bun create burne-app my-app
-
-# yarn
-yarn create burne-app my-app
-```
-
-Package manager for **install inside the new project** is detected from how you invoked the CLI (`npm_config_user_agent`), or set explicitly:
+## Usage
 
 ```bash
-npx create-burne-app my-app --pm pnpm
-bunx create-burne-app my-app --pm bun --template vite -y
+npm create burne-app@latest
+pnpm create burne-app
+bunx create-burne-app
 ```
 
-### Options
+Интерактивно: **стрелки** ↑↓, **Enter** — выбор framework и package manager.
+
+С флагами (без меню):
+
+```bash
+npx create-burne-app my-app --template vite --pm bun -y
+```
 
 | Flag | Description |
 |------|-------------|
-| `--template`, `-t` | `next` (default) or `vite` |
+| `--template`, `-t` | `next` \| `vite` |
 | `--pm` | `npm` \| `pnpm` \| `bun` \| `yarn` |
-| `--yes`, `-y` | skip prompts |
-| `--skip-install` | only copy files |
+| `--yes`, `-y` | без промптов |
+| `--skip-install` | только файлы |
 
-## Local development (this repo)
+## Как обновить стартовый экран (templates)
+
+Шаблоны: `templates/next`, `templates/vite`.
+
+1. Правишь файлы (например `templates/next/app/page.tsx`).
+2. Бампишь `version` в `package.json` (`1.1.0` → `1.1.1`).
+3. Публикуешь:
 
 ```bash
 cd create-burne-app
-node bin/create-burne-app.js /tmp/test-burne --template next --pm npm -y
+npm publish --access public
 ```
 
-Templates live in `templates/next` and `templates/vite`.
-
-## After scaffold
+4. Пользователи:
 
 ```bash
-cd my-app
-npm run dev   # or pnpm dev / bun run dev
+npm create burne-app@latest
 ```
 
-Customize theme: Burne UI site → **Copy config** / **Copy CSS**.
+Подробнее: [`../PUBLISHING.md`](../PUBLISHING.md).
 
-## Publish checklist
+## Local dev
 
-1. Publish **`burne-ui@1.4.0+`** (templates depend on `BurneUIProvider`).
-2. Set `repository.url` in this `package.json` to your GitHub repo.
-3. From `create-burne-app/`: `npm publish` (or `pnpm publish` / `bun publish`).
-4. Users run `npm create burne-app@latest` — templates ship **inside the npm package**, no separate clone required.
-
-Optional: also push this folder (or the whole monorepo) to GitHub for source control — not required for `npx` to work.
+```bash
+cd create-burne-app
+npm install
+node bin/create-burne-app.js
+```

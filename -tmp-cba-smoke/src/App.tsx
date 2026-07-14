@@ -6,13 +6,13 @@ function ThemeToggle() {
 
   return (
     <Switch
-      gloss
-      checked={resolvedTheme === "light"}
-      onChange={() => setTheme(resolvedTheme === "light" ? "dark" : "light")}
-      iconOff={<IoMoon aria-hidden />}
-      iconOn={<IoSunny aria-hidden />}
-      label="Theme"
-    />
+    gloss={true}
+    checked={resolvedTheme === "light"}
+    onChange={() => setTheme(resolvedTheme === "light" ? "dark" : "light")}
+    iconOff={<IoMoon aria-hidden />}
+    iconOn={<IoSunny aria-hidden />}
+    label="Theme"
+  />
   );
 }
 
@@ -32,7 +32,10 @@ export default function App() {
         <div className="flex flex-col gap-base">
           <Button variant="primary">Primary</Button>
           <Button variant="gloss">Gloss</Button>
-          <Input placeholder="Enter your name" />
+          <Input
+            placeholder="Enter your name"
+          />
+          
         </div>
       </Card>
       <Alert className="w-full max-w-none">

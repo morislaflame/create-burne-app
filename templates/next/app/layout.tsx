@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 
-import { BurneProviders } from "@/components/providers/burne-providers";
+import { BurneProviders } from "./burne-providers";
 
 import "./globals.css";
 

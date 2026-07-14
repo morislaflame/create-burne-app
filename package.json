@@ -1,6 +1,6 @@
 {
   "name": "create-burne-app",
-  "version": "1.0.0",
+  "version": "1.2.3",
   "description": "Scaffold a Next.js or Vite app with Burne UI",
   "type": "module",
   "license": "MIT",

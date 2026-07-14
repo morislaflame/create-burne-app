@@ -9,7 +9,7 @@ import { BurneUIProvider } from "burne-ui";
  * and pass `config={burneTheme}`.
  *
  * @example
- * import burneTheme from "@/burne-theme";
+ * import burneTheme from "./burne-theme";
  * <BurneUIProvider config={burneTheme}>{children}</BurneUIProvider>
  */
 export function BurneProviders({ children }: { children: React.ReactNode }) {

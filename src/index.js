@@ -2,8 +2,8 @@ import { spawn } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import readline from "node:readline/promises";
-import { stdin as input, stdout as output } from "node:process";
+
+import * as prompts from "./prompts.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const TEMPLATES_DIR = path.resolve(__dirname, "../templates");
@@ -12,8 +12,6 @@ const TEMPLATES_DIR = path.resolve(__dirname, "../templates");
 /** @typedef {"next" | "vite"} TemplateId */
 
 /**
- * Detect package manager from how the CLI was invoked.
- * `npx` / `npm create` → npm, `pnpm dlx` / `pnpm create` → pnpm, `bunx` / `bun create` → bun.
  * @returns {PackageManager}
  */
 export function detectPackageManager() {
@@ -21,45 +19,26 @@ export function detectPackageManager() {
   if (ua.startsWith("pnpm")) return "pnpm";
   if (ua.startsWith("yarn")) return "yarn";
   if (ua.startsWith("bun")) return "bun";
-
   const execpath = process.env.npm_execpath ?? "";
   if (execpath.includes("pnpm")) return "pnpm";
   if (execpath.includes("yarn")) return "yarn";
   if (execpath.includes("bun")) return "bun";
-
   return "npm";
 }
 
 /**
  * @param {PackageManager} pm
- * @returns {{ install: string[]; runDev: string; createHint: string }}
  */
 export function packageManagerCommands(pm) {
   switch (pm) {
     case "pnpm":
-      return {
-        install: ["install"],
-        runDev: "pnpm dev",
-        createHint: "pnpm create burne-app",
-      };
+      return { install: ["install"], runDev: "pnpm dev" };
     case "bun":
-      return {
-        install: ["install"],
-        runDev: "bun run dev",
-        createHint: "bunx create-burne-app",
-      };
+      return { install: ["install"], runDev: "bun run dev" };
     case "yarn":
-      return {
-        install: ["install"],
-        runDev: "yarn dev",
-        createHint: "yarn create burne-app",
-      };
+      return { install: ["install"], runDev: "yarn dev" };
     default:
-      return {
-        install: ["install"],
-        runDev: "npm run dev",
-        createHint: "npm create burne-app@latest",
-      };
+      return { install: ["install"], runDev: "npm run dev" };
   }
 }
 
@@ -101,18 +80,17 @@ function copyDir(src, dest) {
 
 /**
  * @param {string[]} argv
- * @returns {{
- *   name?: string;
- *   template?: TemplateId;
- *   pm?: PackageManager;
- *   yes: boolean;
- *   skipInstall: boolean;
- *   help: boolean;
- *   version: boolean;
- * }}
  */
 function parseArgs(argv) {
-  /** @type {ReturnType<typeof parseArgs>} */
+  /** @type {{
+   *   name?: string;
+   *   template?: TemplateId;
+   *   pm?: PackageManager;
+   *   yes: boolean;
+   *   skipInstall: boolean;
+   *   help: boolean;
+   *   version: boolean;
+   * }} */
   const out = {
     yes: false,
     skipInstall: false,
@@ -133,7 +111,7 @@ function parseArgs(argv) {
     } else if (arg === "--pm") {
       const v = argv[++i];
       if (v === "npm" || v === "pnpm" || v === "bun" || v === "yarn") out.pm = v;
-      else throw new Error(`Unknown package manager "${v}". Use npm, pnpm, bun, or yarn.`);
+      else throw new Error(`Unknown package manager "${v}".`);
     } else if (arg.startsWith("-")) {
       throw new Error(`Unknown option: ${arg}`);
     } else if (!out.name) {
@@ -142,7 +120,6 @@ function parseArgs(argv) {
       throw new Error(`Unexpected argument: ${arg}`);
     }
   }
-
   return out;
 }
 
@@ -150,28 +127,19 @@ function printHelp(cliVersion) {
   console.log(`
 create-burne-app  v${cliVersion}
 
-Scaffold a Next.js or Vite app with Burne UI (BurneUIProvider, Tailwind v4, demo page).
+Scaffold Next.js or Vite + Burne UI.
 
-Usage:
-  npm create burne-app@latest [name] [options]
-  pnpm create burne-app [name] [options]
-  bunx create-burne-app [name] [options]
-  yarn create burne-app [name] [options]
-  npx create-burne-app [name] [options]
+  npm create burne-app@latest
+  pnpm create burne-app
+  bunx create-burne-app
+
+Interactive: ↑↓ arrows, Enter to confirm.
 
 Options:
-  --template, -t   next | vite          (default: next)
+  --template, -t   next | vite
   --pm             npm | pnpm | bun | yarn
-                   (default: detected from how you ran the CLI)
-  --yes, -y        skip prompts, use defaults
-  --skip-install   do not run install
-  --help, -h
-  --version, -v
-
-Examples:
-  npm create burne-app@latest my-app
-  pnpm create burne-app my-app --template vite
-  bunx create-burne-app my-app --pm bun -y
+  --yes, -y
+  --skip-install
 `);
 }
 
@@ -191,78 +159,94 @@ export async function run(argv, cliVersion) {
     return;
   }
 
-  const rl =
-    args.yes || (args.name && args.template)
-      ? null
-      : readline.createInterface({ input, output });
+  const interactive = !args.yes && process.stdin.isTTY;
+  const detectedPm = detectPackageManager();
 
-  try {
-    let name = args.name;
-    if (!name) {
-      if (args.yes) name = "burne-app";
-      else {
-        const answer = await rl.question("Project name (burne-app): ");
-        name = (answer.trim() || "burne-app").replace(/[\\/]/g, "-");
-      }
-    }
+  console.log(`\ncreate-burne-app  v${cliVersion}\n`);
 
-    /** @type {TemplateId} */
-    let template = args.template ?? "next";
-    if (!args.template && !args.yes && rl) {
-      const answer = await rl.question("Template — next / vite (next): ");
-      const t = answer.trim().toLowerCase();
-      if (t === "vite" || t === "next") template = t;
-      else if (t) throw new Error(`Unknown template "${t}". Use next or vite.`);
-    }
+  /** @type {string} */
+  let name;
+  if (args.name) {
+    name = args.name;
+  } else if (!interactive) {
+    name = "burne-app";
+  } else {
+    name = await prompts.text({
+      message: "Project name",
+      placeholder: "burne-app",
+      defaultValue: "burne-app",
+    });
+  }
 
-    /** @type {PackageManager} */
-    let pm = args.pm ?? detectPackageManager();
-    if (!args.pm && !args.yes && rl) {
-      const answer = await rl.question(
-        `Package manager — npm / pnpm / bun / yarn (${pm}): `,
-      );
-      const p = answer.trim().toLowerCase();
-      if (p === "npm" || p === "pnpm" || p === "bun" || p === "yarn") pm = p;
-      else if (p) throw new Error(`Unknown package manager "${p}".`);
-    }
+  /** @type {TemplateId} */
+  let template;
+  if (args.template) {
+    template = args.template;
+  } else if (!interactive) {
+    template = "next";
+  } else {
+    template = await prompts.select({
+      message: "Framework",
+      options: [
+        { value: "next", label: "Next.js", hint: "App Router" },
+        { value: "vite", label: "Vite", hint: "SPA" },
+      ],
+    });
+  }
 
-    const target = path.resolve(process.cwd(), name);
-    if (fs.existsSync(target) && fs.readdirSync(target).length > 0) {
-      throw new Error(`Directory "${name}" already exists and is not empty.`);
-    }
+  /** @type {PackageManager} */
+  let pm;
+  if (args.pm) {
+    pm = args.pm;
+  } else if (!interactive) {
+    pm = detectedPm;
+  } else {
+    pm = await prompts.select({
+      message: "Package manager",
+      initialValue: detectedPm,
+      options: [
+        { value: "npm", label: "npm" },
+        { value: "pnpm", label: "pnpm" },
+        { value: "bun", label: "bun" },
+        { value: "yarn", label: "yarn" },
+      ],
+    });
+  }
 
-    const templateDir = path.join(TEMPLATES_DIR, template);
-    if (!fs.existsSync(templateDir)) {
-      throw new Error(`Template "${template}" not found at ${templateDir}`);
-    }
+  const target = path.resolve(process.cwd(), name.trim());
+  const displayName = path.basename(target);
+  if (fs.existsSync(target) && fs.readdirSync(target).length > 0) {
+    throw new Error(`Directory "${displayName}" already exists and is not empty.`);
+  }
 
-    const packageName = path.basename(target).replace(/[^a-zA-Z0-9._-]+/g, "-");
+  const templateDir = path.join(TEMPLATES_DIR, template);
+  if (!fs.existsSync(templateDir)) {
+    throw new Error(`Template "${template}" not found`);
+  }
 
-    console.log(`\nScaffolding ${template} app → ${target}\n`);
-    copyDir(templateDir, target);
+  const packageName = displayName.replace(/[^a-zA-Z0-9._-]+/g, "-") || "burne-app";
+  console.log(`\nScaffolding ${template} → ${displayName}…`);
+  copyDir(templateDir, target);
 
-    const pkgPath = path.join(target, "package.json");
-    const pkg = JSON.parse(fs.readFileSync(pkgPath, "utf8"));
-    pkg.name = packageName;
-    fs.writeFileSync(pkgPath, `${JSON.stringify(pkg, null, 2)}\n`);
+  const pkgPath = path.join(target, "package.json");
+  const pkg = JSON.parse(fs.readFileSync(pkgPath, "utf8"));
+  pkg.name = packageName;
+  fs.writeFileSync(pkgPath, `${JSON.stringify(pkg, null, 2)}\n`);
 
-    const cmds = packageManagerCommands(pm);
+  const cmds = packageManagerCommands(pm);
 
-    if (!args.skipInstall) {
-      console.log(`Installing with ${pm}…\n`);
-      await runCommand(pm, cmds.install, target);
-    } else {
-      console.log("Skipped install (--skip-install).\n");
-    }
+  if (!args.skipInstall) {
+    console.log(`\nInstalling with ${pm}…\n`);
+    await runCommand(pm, cmds.install, target);
+  }
 
-    console.log(`Done.
+  const rel = path.relative(process.cwd(), target) || ".";
+  console.log(`
+Done.
 
-  cd ${path.relative(process.cwd(), target) || "."}
+  cd ${rel}
   ${args.skipInstall ? `${pm} install\n  ` : ""}${cmds.runDev}
 
-Optional: customize theme on the Burne UI site → Copy config / Copy CSS.
+Theme: docs site → Copy config / Copy CSS
 `);
-  } finally {
-    rl?.close();
-  }
 }
